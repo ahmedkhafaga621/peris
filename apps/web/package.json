@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@peris/shared": "workspace:*",
+    "@peris/shared": "file:../../packages/shared",
     "@tanstack/react-query": "^5.90.7",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
