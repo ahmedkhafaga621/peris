@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
 import express from "express";
 import bcrypt from "bcryptjs";
@@ -4700,6 +4703,27 @@ export function createApp() {
       next(error);
     }
   });
+
+  const webDist = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../web/dist",
+  );
+  if (existsSync(webDist)) {
+    app.use(express.static(webDist));
+    app.use((req, res, next) => {
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        next();
+        return;
+      }
+      if (req.path.startsWith("/api/")) {
+        next();
+        return;
+      }
+      res.sendFile(path.join(webDist, "index.html"), (error) => {
+        if (error) next(error);
+      });
+    });
+  }
 
   app.use(
     (

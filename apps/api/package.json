@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/dev.ts",
+    "start": "prisma generate && tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
     "test:journeys": "tsx --test src/journeys.stage7.test.ts"
@@ -16,6 +17,8 @@
     "embedded-postgres": "^18.1.0-beta.16",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "prisma": "^6.19.0",
+    "tsx": "^4.20.6",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -24,8 +27,6 @@
     "@types/express": "^5.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.10.1",
-    "prisma": "^6.19.0",
-    "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
 }
