@@ -1,0 +1,2 @@
+ALTER TABLE "ContactMessage"
+ADD COLUMN "status" TEXT NOT NULL DEFAULT 'NEW';

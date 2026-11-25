@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: peris
+      POSTGRES_PASSWORD: peris
+      POSTGRES_DB: peris
+    ports:
+      - "5433:5432"
+    volumes:
+      - peris_pg:/var/lib/postgresql/data
+
+volumes:
+  peris_pg:
