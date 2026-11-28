@@ -190,6 +190,7 @@ if (mysqlUrl) {
       } finally {
         await probe.$disconnect();
       }
+      runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/publishHouse.ts"]);
       delete process.env.PERIS_DATABASE_ERROR;
     } catch (error) {
       const message = error instanceof Error ? error.message : "The database did not start.";
@@ -252,6 +253,7 @@ try {
   } finally {
     await probe.$disconnect();
   }
+  runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/publishHouse.ts"]);
   delete process.env.PERIS_DATABASE_ERROR;
 } catch (error) {
   const message = error instanceof Error ? error.message : "The database did not start.";

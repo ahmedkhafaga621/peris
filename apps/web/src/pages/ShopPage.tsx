@@ -47,7 +47,7 @@ export function ShopPage({ mode = "all" }: { mode?: "all" | "new" | "collection"
           ? collection.name
           : "Shop";
 
-  useSeo(`${title} — PERIS`, "Browse the PERIS edit of abayas. Sample pieces until the house archive is published.");
+  useSeo(`${title} — PERIS`, "Browse the PERIS edit of abayas.");
 
   const [params, setParams] = useSearchParams();
   const color = params.get("color") ?? "";
@@ -86,8 +86,8 @@ export function ShopPage({ mode = "all" }: { mode?: "all" | "new" | "collection"
           {collection
             ? collection.description
             : mode === "new"
-              ? "The latest sample to enter the edit."
-              : "A short sample edit, photographed as studies until PERIS publishes its own archive. Prices are placeholders."}
+              ? "The latest pieces to enter the edit."
+              : "The current edit, photographed in the house."}
         </p>
       </header>
       {mode === "index" ? (
