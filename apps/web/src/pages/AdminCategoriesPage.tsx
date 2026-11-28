@@ -15,7 +15,7 @@ type DeskCollection = {
   pieces: number;
 };
 
-const collectionImage = new Map(
+const collectionImage = new Map<string, string>(
   collections.map((collection) => [collection.slug, collection.image]),
 );
 
