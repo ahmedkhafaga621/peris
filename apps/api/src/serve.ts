@@ -156,36 +156,47 @@ if (mysqlUrl) {
   process.env.DATABASE_URL = mysqlUrl;
   try {
     writeMysqlSchema();
-    const prismaCli = packageFile("prisma", "build/index.js");
-    runNode(prismaCli, ["generate", "--schema", "prisma/schema.mysql.prisma"]);
-    runNode(prismaCli, [
-      "db",
-      "push",
+    runNode(packageFile("prisma", "build/index.js"), [
+      "generate",
       "--schema",
       "prisma/schema.mysql.prisma",
-      "--skip-generate",
-      "--accept-data-loss",
     ]);
-    const generated = (await import(
-      pathToFileURL(path.join(root, "src", "generated", "mysql", "index.js")).href
-    )) as { PrismaClient: new () => { category: { count(): Promise<number> }; $disconnect(): Promise<void> } };
-    const probe = new generated.PrismaClient();
-    try {
-      const categories = await probe.category.count();
-      if (categories === 0) {
-        console.log("Database has no categories. Seeding the catalog.");
-        runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/seed.ts"]);
-      }
-    } finally {
-      await probe.$disconnect();
-    }
-    delete process.env.PERIS_DATABASE_ERROR;
   } catch (error) {
     const message = error instanceof Error ? error.message : "The database did not start.";
     process.env.PERIS_DATABASE_ERROR = message.slice(0, 300);
     console.error("PERIS database setup failed. The API is still listening.", message);
   }
   await import("./index.js");
+  if (!process.env.PERIS_DATABASE_ERROR) {
+    try {
+      runNode(packageFile("prisma", "build/index.js"), [
+        "db",
+        "push",
+        "--schema",
+        "prisma/schema.mysql.prisma",
+        "--skip-generate",
+        "--accept-data-loss",
+      ]);
+      const generated = (await import(
+        pathToFileURL(path.join(root, "src", "generated", "mysql", "index.js")).href
+      )) as { PrismaClient: new () => { category: { count(): Promise<number> }; $disconnect(): Promise<void> } };
+      const probe = new generated.PrismaClient();
+      try {
+        const categories = await probe.category.count();
+        if (categories === 0) {
+          console.log("Database has no categories. Seeding the catalog.");
+          runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/seed.ts"]);
+        }
+      } finally {
+        await probe.$disconnect();
+      }
+      delete process.env.PERIS_DATABASE_ERROR;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The database did not start.";
+      process.env.PERIS_DATABASE_ERROR = message.slice(0, 300);
+      console.error("PERIS database setup failed. The API is still listening.", message);
+    }
+  }
 } else {
 const configuredUrl = process.env.DATABASE_URL;
 const configured = connectionTarget(configuredUrl);
