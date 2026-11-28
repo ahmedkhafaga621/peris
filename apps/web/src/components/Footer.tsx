@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { IconClock, IconEmail, IconFacebook, IconGoogleMaps, IconInstagram, IconPhone } from "@/components/Icons";
 import { phoneHref } from "@/data/site";
 import { useAddress } from "@/hooks/useAddress";
 import { useFacebook } from "@/hooks/useFacebook";
@@ -18,7 +19,7 @@ import { useMaps } from "@/hooks/useMaps";
 import { usePhone } from "@/hooks/usePhone";
 import { subscribeToNotes } from "@/lib/newsletter";
 
-export function Footer({ contactEmail }: { contactEmail: string }) {
+export function Footer() {
   const hours = useHours();
   const address = useAddress();
   const phone = usePhone();
@@ -104,17 +105,32 @@ export function Footer({ contactEmail }: { contactEmail: string }) {
         <div>
           <p className="eyebrow">{footerBoutique}</p>
           <div className="footer-links">
-            <span>{address}</span>
-            <span>{hours}</span>
-            <a href={phoneHref(phone)}>{phone}</a>
-            <a href={`mailto:${contactEmail}`}>{contactEmail}</a>
-            <a href={instagram} target="_blank" rel="noreferrer">
+            <a className="social-icon-link" href={maps} target="_blank" rel="noreferrer">
+              <IconGoogleMaps size={16} />
+              {address}
+            </a>
+            <span className="social-icon-link">
+              <IconClock size={16} />
+              {hours}
+            </span>
+            <a className="social-icon-link" href={phoneHref(phone)}>
+              <IconPhone size={16} />
+              {phone}
+            </a>
+            <a className="social-icon-link" href="mailto:info@ljperis.com">
+              <IconEmail size={16} />
+              info@ljperis.com
+            </a>
+            <a className="social-icon-link" href={instagram} target="_blank" rel="noreferrer">
+              <IconInstagram size={16} />
               Instagram
             </a>
-            <a href={facebook} target="_blank" rel="noreferrer">
+            <a className="social-icon-link" href={facebook} target="_blank" rel="noreferrer">
+              <IconFacebook size={16} />
               Facebook
             </a>
-            <a href={maps} target="_blank" rel="noreferrer">
+            <a className="social-icon-link" href={maps} target="_blank" rel="noreferrer">
+              <IconGoogleMaps size={16} />
               Google Maps
             </a>
           </div>
@@ -150,13 +166,45 @@ export function Footer({ contactEmail }: { contactEmail: string }) {
         </div>
       </div>
       <div className="wrap footer-base">
-        <span>
-          Visa · Mastercard · Apple Pay · Google Pay · Cash on delivery
-        </span>
-        <span>
-          Sample photography via Unsplash. Sample prices, until the PERIS
-          archive is published.
-        </span>
+        <div className="pay-marks">
+          <span className="pay-mark">
+            <img className="pay-visa" src="/brand/visa.svg" alt="" width={48} height={16} />
+          </span>
+          <span className="pay-mark">
+            <svg width="32" height="20" viewBox="0 0 32 20" aria-hidden="true">
+              <circle cx="11" cy="10" r="8" fill="#eb001b" />
+              <circle cx="21" cy="10" r="8" fill="#f79e1b" />
+              <path d="M16 4.2a8 8 0 0 1 0 11.6 8 8 0 0 1 0-11.6z" fill="#ff5f00" />
+            </svg>
+       
+          </span>
+          <span className="pay-mark">
+            <svg width="14" height="17" viewBox="0 0 16 20" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M13.1 10.6c0-2.2 1.8-3.2 1.9-3.3-1-1.5-2.6-1.7-3.2-1.7-1.3-.1-2.6.8-3.3.8-.7 0-1.7-.8-2.8-.7-1.4.1-2.7.8-3.4 2.1-1.5 2.6-.4 6.4 1 8.5.7 1 1.5 2.1 2.6 2.1 1 0 1.4-.7 2.7-.7s1.6.7 2.8.7 1.8-1 2.5-2c.8-1.2 1.1-2.3 1.1-2.4 0 0-2.1-.8-2.1-3.4zM11 4.3c.6-.7.9-1.7.8-2.7-.8.1-1.8.6-2.4 1.3-.5.6-1 1.6-.9 2.5.9.1 1.8-.4 2.5-1.1z"
+              />
+            </svg>
+             Pay
+          </span>
+          <span className="pay-mark">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.4c-.3 1.5-1.1 2.7-2.4 3.5v2.9h3.9c2.3-2.1 3.6-5.2 3.6-8.5z" />
+              <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-2.9c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3c2 4 6.1 6.6 10.7 6.6z" />
+              <path fill="#FBBC05" d="M5.3 14.4A7.2 7.2 0 0 1 4.9 12c0-.8.1-1.6.4-2.4V6.6H1.3A12 12 0 0 0 0 12c0 1.9.5 3.8 1.3 5.4l4-3z" />
+              <path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C17.9 1.1 15.2 0 12 0 7.4 0 3.3 2.6 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z" />
+            </svg>
+             Pay
+          </span>
+          <span className="pay-mark">
+            <svg width="22" height="15" viewBox="0 0 24 16" aria-hidden="true">
+              <rect x="1" y="1" width="22" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              <circle cx="12" cy="8" r="3" fill="none" stroke="currentColor" strokeWidth="1.3" />
+            </svg>
+            Cash on delivery
+          </span>
+        </div>
+        <span>© PERIS. A house of Lamasat Jawhareya, Dubai.</span>
       </div>
     </footer>
   );

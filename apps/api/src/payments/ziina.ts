@@ -57,10 +57,9 @@ export const ziinaProvider: PaymentProvider = {
       message?: string;
     };
     if (!response.ok) {
-      throw new HttpError(
-        502,
-        body.error || body.message || "Ziina did not create a payment.",
-      );
+      const message =
+        body.error || body.message || "Ziina did not create a payment.";
+      throw new HttpError(response.status >= 500 ? 502 : 400, message);
     }
     if (!body.id || !body.redirect_url) {
       throw new HttpError(502, "Ziina did not return a checkout link.");

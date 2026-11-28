@@ -19,10 +19,13 @@ export {
   reservationMinutes,
 } from "./release.js";
 
+/** Ziina rejects payment intents below 2 AED. */
+export const CARD_MINIMUM_FILS = 200;
+
 export function listPaymentMethods() {
   const methods: Array<"cod" | "ziina"> = ["cod"];
   if (ziinaConfigured()) methods.push("ziina");
-  return { methods };
+  return { methods, cardMinimumFils: CARD_MINIMUM_FILS };
 }
 
 export async function paymentStatus(id: string) {

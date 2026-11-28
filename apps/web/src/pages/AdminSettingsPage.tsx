@@ -22,6 +22,8 @@ type StoreSettings = {
   storeOpen: boolean;
   themePrimary: string;
   themeIvory: string;
+  homeHero: string;
+  homeStory: string;
 };
 
 const emptySettings: StoreSettings = {
@@ -29,13 +31,13 @@ const emptySettings: StoreSettings = {
   logo: "/brand/peris-burgundy.png",
   phone: "+971 50 540 6077",
   whatsapp: "+971505406077",
-  email: "hello@peris.ae",
+  email: "info@ljperis.com",
   address:
     "Boutique M01, 3 Floor, Abu Hail Center, Dubai, United Arab Emirates.",
   hours: "Daily from 10:00 AM to 10:00 PM.",
   instagram: "https://www.instagram.com/peris_uae/",
   facebook: "https://www.facebook.com/perisdubai",
-  maps: "https://share.google/yXXt6E0JO91xU9lmA",
+  maps: "https://maps.app.goo.gl/YdjuY6Nqnad2rpD36",
   parent: "Lamasat Jawhareya",
   currency: "AED",
   vatRate: 0.05,
@@ -43,6 +45,8 @@ const emptySettings: StoreSettings = {
   storeOpen: true,
   themePrimary: "#751629",
   themeIvory: "#f8f7ee",
+  homeHero: "/media/flowing.jpg",
+  homeStory: "/media/floral.jpg",
 };
 
 export function AdminSettingsPage() {
@@ -72,14 +76,20 @@ export function AdminSettingsPage() {
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
-  function saveSettings() {
+  function saveSettings(
+    next: StoreSettings = settings,
+    message = "Saved. The homepage uses these photographs now.",
+  ) {
     setSaving(true);
     setNote("");
     void staffFetch<{ settings: StoreSettings }>("/api/v1/admin/settings", {
       method: "POST",
-      body: JSON.stringify({ settings }),
+      body: JSON.stringify({ settings: next }),
     })
-      .then((body) => setSettings(body.settings))
+      .then((body) => {
+        setSettings({ ...emptySettings, ...body.settings });
+        setNote(message);
+      })
       .catch((error: unknown) =>
         setNote(
           error instanceof Error
@@ -122,6 +132,26 @@ export function AdminSettingsPage() {
               Upload a logo image, then save settings.
             </p>
           </div>
+          <ImageUploadField
+            label="Homepage hero"
+            kind="brand"
+            value={settings.homeHero}
+            onChange={(url) => {
+              const next = { ...settings, homeHero: url };
+              setSettings(next);
+              saveSettings(next, "Homepage hero saved.");
+            }}
+          />
+          <ImageUploadField
+            label="Homepage story"
+            kind="brand"
+            value={settings.homeStory}
+            onChange={(url) => {
+              const next = { ...settings, homeStory: url };
+              setSettings(next);
+              saveSettings(next, "Homepage story saved.");
+            }}
+          />
           <label className="field">
             <span>Phone</span>
             <input
@@ -248,11 +278,12 @@ export function AdminSettingsPage() {
           </label>
         </div>
 
+        {note ? <p className="notice">{note}</p> : null}
         <button
           type="button"
-          className="btn btn-line"
+          className="btn btn-fill"
           disabled={saving}
-          onClick={saveSettings}
+          onClick={() => saveSettings()}
         >
           {saving ? "Saving settings…" : "Save store settings"}
         </button>

@@ -429,6 +429,48 @@ export async function createStaffProduct(req: Request, res: Response) {
   return presentedProduct(product.id);
 }
 
+export async function deleteStaffProduct(
+  req: Request,
+  res: Response,
+  id: string,
+) {
+  const actor = await requireStaff(req, res, "products.write");
+  if (!actor) return null;
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { variants: { select: { id: true, stockReserved: true } } },
+  });
+  if (!product) throw new HttpError(404, "That piece was not found.");
+  if (product.variants.some((variant) => variant.stockReserved > 0)) {
+    throw new HttpError(
+      409,
+      "This piece is held for a payment. Release that order before removing it.",
+    );
+  }
+  const variantIds = product.variants.map((variant) => variant.id);
+  await prisma.$transaction(async (tx) => {
+    if (variantIds.length) {
+      await tx.cartItem.deleteMany({ where: { variantId: { in: variantIds } } });
+      await tx.inventoryTransaction.deleteMany({
+        where: { variantId: { in: variantIds } },
+      });
+    }
+    await tx.wishlistItem.deleteMany({ where: { productId: id } });
+    await tx.product.delete({ where: { id } });
+    await tx.auditLog.create({
+      data: {
+        actorId: actor.id,
+        action: "product.delete",
+        entityType: "Product",
+        entityId: id,
+        metadata: { name: product.name, slug: product.slug, styleCode: product.styleCode },
+        ip: req.ip,
+      },
+    });
+  });
+  return { id, name: product.name };
+}
+
 function slugifyPiece(name: string) {
   return name
     .toLowerCase()
@@ -1403,6 +1445,18 @@ export async function publicFabrics() {
   return rows.map((row) => row.name);
 }
 
+export async function publicFabricGallery() {
+  const rows = await prisma.fabric.findMany({
+    where: { isCommission: true, isActive: true },
+    orderBy: { sortOrder: "asc" },
+  });
+  return rows.map((row) => ({
+    name: row.name,
+    description: row.description ?? "",
+    imageUrl: row.imageUrl ?? "",
+  }));
+}
+
 export async function staffFabrics(req: Request, res: Response) {
   const actor = await requireStaff(req, res, "products.write");
   if (!actor) return null;
@@ -1488,8 +1542,53 @@ export async function updateStaffFabricList(
   return presentFabric(fabric);
 }
 
-function presentFabric(row: { id: string; name: string; isActive: boolean }) {
-  return { id: row.id, name: row.name, isActive: row.isActive };
+function presentFabric(row: {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  isActive: boolean;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? "",
+    imageUrl: row.imageUrl ?? "",
+    isActive: row.isActive,
+  };
+}
+
+const fabricImageSchema = z.object({
+  imageUrl: z.string().trim().max(500),
+});
+
+export async function updateStaffFabricImage(
+  req: Request,
+  res: Response,
+  id: string,
+) {
+  const actor = await requireStaff(req, res, "products.write");
+  if (!actor) return null;
+  const input = fabricImageSchema.parse(req.body);
+  const imageUrl = storedImage(input.imageUrl);
+  const existing = await prisma.fabric.findUnique({ where: { id } });
+  if (!existing || !existing.isCommission)
+    throw new HttpError(404, "That fabric is not on the desk.");
+  const fabric = await prisma.fabric.update({
+    where: { id: existing.id },
+    data: { imageUrl },
+  });
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      action: "fabric.image",
+      entityType: "Fabric",
+      entityId: fabric.id,
+      metadata: { name: fabric.name },
+      ip: req.ip,
+    },
+  });
+  return presentFabric(fabric);
 }
 
 export async function staffCategories(req: Request, res: Response) {
@@ -1553,6 +1652,7 @@ function presentStaffCategory(row: {
   name: string;
   slug: string;
   description: string;
+  imageUrl: string | null;
   isPublished: boolean;
   _count: { products: number };
 }) {
@@ -1561,6 +1661,7 @@ function presentStaffCategory(row: {
     name: row.name,
     slug: row.slug,
     description: row.description,
+    imageUrl: row.imageUrl,
     isPublished: row.isPublished,
     pieces: row._count.products,
   };
@@ -1585,14 +1686,7 @@ export async function updateStaffCategory(
   if (!existing)
     throw new HttpError(404, "That collection is not on the desk.");
   if (existing.isPublished === input.isPublished) {
-    return {
-      id: existing.id,
-      name: existing.name,
-      slug: existing.slug,
-      description: existing.description,
-      isPublished: existing.isPublished,
-      pieces: existing._count.products,
-    };
+    return presentStaffCategory(existing);
   }
   const category = await prisma.category.update({
     where: { id: existing.id },
@@ -1609,14 +1703,7 @@ export async function updateStaffCategory(
       ip: req.ip,
     },
   });
-  return {
-    id: category.id,
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    isPublished: category.isPublished,
-    pieces: category._count.products,
-  };
+  return presentStaffCategory(category);
 }
 
 const categoryLineSchema = z.object({
@@ -1638,14 +1725,7 @@ export async function updateStaffCategoryLine(
   if (!existing)
     throw new HttpError(404, "That collection is not on the desk.");
   if (existing.description === input.description) {
-    return {
-      id: existing.id,
-      name: existing.name,
-      slug: existing.slug,
-      description: existing.description,
-      isPublished: existing.isPublished,
-      pieces: existing._count.products,
-    };
+    return presentStaffCategory(existing);
   }
   const category = await prisma.category.update({
     where: { id: existing.id },
@@ -1662,14 +1742,7 @@ export async function updateStaffCategoryLine(
       ip: req.ip,
     },
   });
-  return {
-    id: category.id,
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    isPublished: category.isPublished,
-    pieces: category._count.products,
-  };
+  return presentStaffCategory(category);
 }
 
 const categoryNameSchema = z.object({
@@ -1691,14 +1764,7 @@ export async function updateStaffCategoryName(
   if (!existing)
     throw new HttpError(404, "That collection is not on the desk.");
   if (existing.name === input.name) {
-    return {
-      id: existing.id,
-      name: existing.name,
-      slug: existing.slug,
-      description: existing.description,
-      isPublished: existing.isPublished,
-      pieces: existing._count.products,
-    };
+    return presentStaffCategory(existing);
   }
   const category = await prisma.category.update({
     where: { id: existing.id },
@@ -1715,14 +1781,56 @@ export async function updateStaffCategoryName(
       ip: req.ip,
     },
   });
-  return {
-    id: category.id,
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    isPublished: category.isPublished,
-    pieces: category._count.products,
-  };
+  return presentStaffCategory(category);
+}
+
+const categoryImageSchema = z.object({
+  imageUrl: z.string().trim().max(500),
+});
+
+export async function updateStaffCategoryImage(
+  req: Request,
+  res: Response,
+  id: string,
+) {
+  const actor = await requireStaff(req, res, "products.write");
+  if (!actor) return null;
+  const input = categoryImageSchema.parse(req.body);
+  const imageUrl = storedImage(input.imageUrl);
+  const existing = await prisma.category.findUnique({
+    where: { id },
+    include: { _count: { select: { products: true } } },
+  });
+  if (!existing)
+    throw new HttpError(404, "That collection is not on the desk.");
+  const category = await prisma.category.update({
+    where: { id: existing.id },
+    data: { imageUrl },
+    include: { _count: { select: { products: true } } },
+  });
+  await prisma.auditLog.create({
+    data: {
+      actorId: actor.id,
+      action: "category.image",
+      entityType: "Category",
+      entityId: category.id,
+      metadata: { slug: category.slug },
+      ip: req.ip,
+    },
+  });
+  return presentStaffCategory(category);
+}
+
+function storedImage(value: string) {
+  if (!value) return null;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  try {
+    const url = new URL(value);
+    if (url.protocol === "http:" || url.protocol === "https:") return value;
+  } catch {
+    // Rejected below.
+  }
+  throw new HttpError(400, "Upload a photograph.");
 }
 
 export async function staffShipping(req: Request, res: Response) {
@@ -2373,7 +2481,7 @@ export async function updateStaffFacebook(req: Request, res: Response) {
   return { line: input.line };
 }
 
-const houseMaps = "https://share.google/yXXt6E0JO91xU9lmA";
+const houseMaps = "https://maps.app.goo.gl/YdjuY6Nqnad2rpD36";
 
 function usableMaps(line: string) {
   try {
@@ -6219,7 +6327,7 @@ export async function updateStaffBespokeEyebrow(req: Request, res: Response) {
   return { line: input.line };
 }
 
-const housePolicyEyebrow = "Draft";
+const housePolicyEyebrow = "The house";
 
 function usablePolicyEyebrow(line: string) {
   return (
@@ -10543,7 +10651,13 @@ function presentStaffOrder(order: {
   paymentStatus: string;
   totalFils: number;
   createdAt: Date;
-  items: { name: string; quantity: number }[];
+  items: {
+    name: string;
+    color: string;
+    size: string;
+    lengthLabel: string | null;
+    quantity: number;
+  }[];
   payments: { method: string; status: string }[];
   shipments: {
     carrier: string | null;
@@ -10583,6 +10697,9 @@ function presentStaffOrder(order: {
     carrier: shipment?.carrier ?? null,
     items: order.items.map((item) => ({
       name: item.name,
+      color: item.color,
+      size: item.size,
+      lengthLabel: item.lengthLabel,
       quantity: item.quantity,
     })),
   };

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { ImageUploadField } from "@/components/ImageUploadField";
+import { collections } from "@/data/catalog";
 import { useSeo } from "@/lib/seo";
 import { AdminChrome } from "@/pages/AdminPage";
 import { staffFetch, useStaffSession } from "@/store/useStaffSession";
@@ -8,9 +10,14 @@ type DeskCollection = {
   name: string;
   slug: string;
   description: string;
+  imageUrl: string | null;
   isPublished: boolean;
   pieces: number;
 };
+
+const collectionImage = new Map(
+  collections.map((collection) => [collection.slug, collection.image]),
+);
 
 export function AdminCategoriesPage() {
   const user = useStaffSession((state) => state.user);
@@ -68,7 +75,7 @@ export function AdminCategoriesPage() {
         <p className="eyebrow">Desk</p>
         <h1>Collections</h1>
         <p className="lede" style={{ marginTop: 16 }}>
-          A hidden collection leaves the shop. The pieces stay published. The name appears on the collection tile. The description appears on the collection tile.
+          A hidden collection leaves the shop. The pieces stay published. The name and description appear on the collection tile. The photograph is the tile on the homepage.
         </p>
       </header>
       {note ? <p className="notice">{note}</p> : null}
@@ -222,6 +229,38 @@ export function AdminCategoriesPage() {
                   >
                     Save description
                   </button>
+                  <ImageUploadField
+                    label="Homepage tile"
+                    kind="product"
+                    value={category.imageUrl || collectionImage.get(category.slug) || ""}
+                    onChange={(url) => {
+                      setSaving(`${category.id}:image`);
+                      setNote("");
+                      void staffFetch<{ category: DeskCollection }>(
+                        `/api/v1/admin/categories/${encodeURIComponent(category.id)}/image`,
+                        {
+                          method: "POST",
+                          body: JSON.stringify({ imageUrl: url }),
+                        },
+                      )
+                        .then((body) => {
+                          setCategories((current) =>
+                            current.map((item) =>
+                              item.id === body.category.id ? body.category : item,
+                            ),
+                          );
+                          setNote("Homepage tile saved.");
+                        })
+                        .catch((error: unknown) =>
+                          setNote(
+                            error instanceof Error
+                              ? error.message
+                              : "The photograph was not saved.",
+                          ),
+                        )
+                        .finally(() => setSaving(""));
+                    }}
+                  />
                 </td>
                 <td>{category.pieces}</td>
                 <td>

@@ -98,6 +98,7 @@ import {
   createStaffCategory,
   updateStaffProductImage,
   createStaffProductImage,
+  deleteStaffProduct,
   deleteStaffProductImage,
   addStaffProductColor,
   stockHistory,
@@ -108,6 +109,7 @@ import {
   updateStaffCategory,
   updateStaffCategoryName,
   updateStaffCategoryLine,
+  updateStaffCategoryImage,
   updateStaffCollection,
   updateStaffCompare,
   updateStaffDescription,
@@ -128,7 +130,8 @@ import {
   publicColors,
   staffFabrics,
   updateStaffFabricList,
-  publicFabrics,
+  updateStaffFabricImage,
+  publicFabricGallery,
   staffShipping,
   updateStaffShipping,
   publicPage,
@@ -532,7 +535,7 @@ export function createApp() {
 
   app.get("/api/v1/fabrics", async (_req, res, next) => {
     try {
-      res.json({ fabrics: await publicFabrics() });
+      res.json({ fabrics: await publicFabricGallery() });
     } catch (error) {
       next(error);
     }
@@ -1501,7 +1504,7 @@ export function createApp() {
     try {
       const session = await rotateSession(req, res);
       if (!session) {
-        res.status(401).json({ error: "Sign in to continue." });
+        res.json({ user: null });
         return;
       }
       res.json({
@@ -1852,6 +1855,16 @@ export function createApp() {
     }
   });
 
+  app.delete("/api/v1/admin/products/:id", async (req, res, next) => {
+    try {
+      const removed = await deleteStaffProduct(req, res, String(req.params.id));
+      if (!removed) return;
+      res.json({ removed });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/v1/admin/uploads", async (req, res, next) => {
     try {
       const upload = await createStaffUpload(req, res);
@@ -2082,6 +2095,20 @@ export function createApp() {
     }
   });
 
+  app.post("/api/v1/admin/fabrics/:id/image", async (req, res, next) => {
+    try {
+      const fabric = await updateStaffFabricImage(
+        req,
+        res,
+        String(req.params.id),
+      );
+      if (!fabric) return;
+      res.json({ fabric });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/v1/admin/colors", async (req, res, next) => {
     try {
       const colors = await staffColors(req, res);
@@ -2222,6 +2249,20 @@ export function createApp() {
       }
     },
   );
+
+  app.post("/api/v1/admin/categories/:id/image", async (req, res, next) => {
+    try {
+      const category = await updateStaffCategoryImage(
+        req,
+        res,
+        String(req.params.id),
+      );
+      if (!category) return;
+      res.json({ category });
+    } catch (error) {
+      next(error);
+    }
+  });
 
   app.post("/api/v1/admin/categories/:id", async (req, res, next) => {
     try {

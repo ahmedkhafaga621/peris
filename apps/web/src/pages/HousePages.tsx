@@ -25,7 +25,6 @@ import { useSizeGuideEyebrow } from "@/hooks/useSizeGuideEyebrow";
 import { useTrackEyebrow } from "@/hooks/useTrackEyebrow";
 import { useNotFoundEyebrow } from "@/hooks/useNotFoundEyebrow";
 import { useMaintenanceEyebrow } from "@/hooks/useMaintenanceEyebrow";
-import { usePolicyBanner } from "@/hooks/usePolicyBanner";
 import { usePolicyEyebrow } from "@/hooks/usePolicyEyebrow";
 import { useContactEyebrow } from "@/hooks/useContactEyebrow";
 import { useHours } from "@/hooks/useHours";
@@ -747,9 +746,59 @@ type SavedMeasurement = {
   waistCm: number | null;
   abayaLengthIn: number | null;
 };
+function policyLead(text: string) {
+  const match = text.match(/^(\d+\.\s+)?([^:]{2,80}:)\s*(.*)$/);
+  if (!match) return text;
+  return (
+    <>
+      <strong>
+        {match[1]}
+        {match[2]}
+      </strong>
+      {match[3] ? ` ${match[3]}` : null}
+    </>
+  );
+}
+
+function PolicyCopy({ body }: { body: string }) {
+  const blocks = body.split(/\n\n+/).filter((block) => block.trim());
+  return (
+    <div className="policy-copy">
+      {blocks.map((block) => {
+        const lines = block.split("\n");
+        const list = lines.every((line) => /^- |^ {2}- /.test(line));
+        if (!list) return <p key={block}>{policyLead(block)}</p>;
+        const items: { text: string; children: string[] }[] = [];
+        for (const line of lines) {
+          if (line.startsWith("  - ")) {
+            items.at(-1)?.children.push(line.slice(4));
+          } else {
+            items.push({ text: line.slice(2), children: [] });
+          }
+        }
+        return (
+          <ul key={block}>
+            {items.map((item) => (
+              <li key={item.text}>
+                {policyLead(item.text)}
+                {item.children.length > 0 ? (
+                  <ul>
+                    {item.children.map((child) => (
+                      <li key={child}>{child}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PolicyPage() {
   const policyEyebrow = usePolicyEyebrow();
-  const policyBanner = usePolicyBanner();
   const { slug = "" } = useParams();
   const [page, setPage] = useState<{ title: string; body: string } | null>(
     null,
@@ -790,7 +839,7 @@ export function PolicyPage() {
   if (!page) {
     return (
       <div className="wrap page-intro">
-        <h1>Opening the draft</h1>
+        <h1>Opening the page</h1>
       </div>
     );
   }
@@ -800,10 +849,7 @@ export function PolicyPage() {
         <p className="eyebrow">{policyEyebrow}</p>
         <h1>{page.title}</h1>
       </header>
-      <p className="draft-banner">{policyBanner}</p>
-      <p className="lede" style={{ marginTop: 24 }}>
-        {page.body}
-      </p>
+      <PolicyCopy body={page.body} />
     </article>
   );
 }

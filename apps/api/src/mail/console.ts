@@ -2,7 +2,7 @@ import type { Mailer, MailMessage } from "./types.js";
 
 export class ConsoleMailer implements Mailer {
   async send(message: MailMessage) {
-    const from = process.env.MAIL_FROM?.trim() || "PERIS <hello@peris.ae>";
+    const from = process.env.MAIL_FROM?.trim() || "PERIS <info@ljperis.com>";
     console.info(
       [
         "[mail]",

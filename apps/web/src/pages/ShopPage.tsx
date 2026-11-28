@@ -147,11 +147,7 @@ export function ShopPage({ mode = "all" }: { mode?: "all" | "new" | "collection"
           {productsQuery.isPending || categoriesQuery.isPending ? (
             <p className="shop-empty">Opening the edit.</p>
           ) : list.length === 0 ? (
-            <p className="shop-empty">
-              {productsQuery.isError
-                ? "The atelier catalog could not be opened."
-                : "Nothing in this edit matches that selection."}
-            </p>
+            <p className="shop-empty">Nothing in this edit matches that selection.</p>
           ) : null}
           <div className="product-grid">
             {list.map((product) => (

@@ -1,8 +1,9 @@
-import { createApp } from "./app.js";
 import { loadEnv } from "./loadEnv.js";
-import { releaseExpiredReservations } from "./payments/index.js";
 
 loadEnv();
+
+const { createApp } = await import("./app.js");
+const { releaseExpiredReservations } = await import("./payments/index.js");
 
 const port = Number(process.env.PORT ?? 4000);
 createApp().listen(port, () => {

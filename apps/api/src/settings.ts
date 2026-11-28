@@ -22,6 +22,8 @@ export type StoreSettings = {
   storeOpen: boolean;
   themePrimary: string;
   themeIvory: string;
+  homeHero: string;
+  homeStory: string;
 };
 
 export const defaultStoreSettings: StoreSettings = {
@@ -29,13 +31,13 @@ export const defaultStoreSettings: StoreSettings = {
   logo: "/brand/peris-burgundy.png",
   phone: "+971 50 540 6077",
   whatsapp: "+971505406077",
-  email: "hello@peris.ae",
+  email: "info@ljperis.com",
   address:
     "Boutique M01, 3 Floor, Abu Hail Center, Dubai, United Arab Emirates.",
   hours: "Daily from 10:00 AM to 10:00 PM.",
   instagram: "https://www.instagram.com/peris_uae/",
   facebook: "https://www.facebook.com/perisdubai",
-  maps: "https://share.google/yXXt6E0JO91xU9lmA",
+  maps: "https://maps.app.goo.gl/YdjuY6Nqnad2rpD36",
   parent: "Lamasat Jawhareya",
   currency: "AED",
   vatRate: 0.05,
@@ -43,6 +45,8 @@ export const defaultStoreSettings: StoreSettings = {
   storeOpen: true,
   themePrimary: "#751629",
   themeIvory: "#f8f7ee",
+  homeHero: "/media/flowing.jpg",
+  homeStory: "/media/floral.jpg",
 };
 
 function readString(value: unknown, fallback: string) {
@@ -79,6 +83,12 @@ function readNumber(
     return value;
   }
   return fallback;
+}
+
+function readImagePath(value: unknown, fallback: string) {
+  const candidate = readString(value, fallback);
+  if (candidate.startsWith("/") && !candidate.startsWith("//")) return candidate;
+  return hasUsableUrl(candidate) ? candidate : fallback;
 }
 
 function hasUsableUrl(value: string) {
@@ -208,6 +218,8 @@ export function normalizeStoreSettings(
   )
     ? readString(source.themeIvory, base.themeIvory)
     : base.themeIvory;
+  base.homeHero = readImagePath(source.homeHero, base.homeHero);
+  base.homeStory = readImagePath(source.homeStory, base.homeStory);
 
   return base;
 }
@@ -233,6 +245,8 @@ export async function publicStorefrontSettings() {
     whatsapp: settings.whatsapp,
     themePrimary: settings.themePrimary,
     themeIvory: settings.themeIvory,
+    homeHero: settings.homeHero,
+    homeStory: settings.homeStory,
   };
 }
 

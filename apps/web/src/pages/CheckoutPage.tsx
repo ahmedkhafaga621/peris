@@ -29,6 +29,7 @@ type Quote = {
     estimatedMaxDays: number;
   };
   methods?: Array<"cod" | "ziina">;
+  cardMinimumFils?: number;
   paid: false;
 };
 
@@ -90,6 +91,9 @@ export function CheckoutPage() {
   useSeo("Checkout — PERIS");
 
   const ziinaAvailable = quote?.methods?.includes("ziina") ?? false;
+  const cardMinimumFils = quote?.cardMinimumFils ?? 200;
+  const cardAllowed =
+    ziinaAvailable && (quote?.totalFils ?? 0) >= cardMinimumFils;
 
   function refreshQuote() {
     if (lines.length === 0) return;
@@ -142,7 +146,11 @@ export function CheckoutPage() {
               ? current
               : "",
           );
-          if (!result.quote.methods?.includes("ziina")) {
+          const minimum = result.quote.cardMinimumFils ?? 200;
+          if (
+            !result.quote.methods?.includes("ziina") ||
+            result.quote.totalFils < minimum
+          ) {
             setPaymentMethod("cod");
           }
         } else {
@@ -386,10 +394,17 @@ export function CheckoutPage() {
                 type="radio"
                 name="paymentMethod"
                 checked={paymentMethod === "ziina"}
+                disabled={!cardAllowed}
                 onChange={() => setPaymentMethod("ziina")}
               />{" "}
               Card (Ziina)
             </label>
+            {cardAllowed ? null : (
+              <p>
+                Card payments start at {formatAed(cardMinimumFils)}. This bag
+                can be placed as cash on delivery.
+              </p>
+            )}
           </fieldset>
         ) : null}
         {quote ? (

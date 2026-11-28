@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "prisma", "@prisma/client", "@prisma/engines", "@embedded-postgres/windows-x64"]
+    "onlyBuiltDependencies": ["esbuild", "prisma", "@prisma/client", "@prisma/engines", "@embedded-postgres/windows-x64", "@embedded-postgres/linux-x64", "@embedded-postgres/linux-arm64"]
   },
   "scripts": {
     "dev": "npm --prefix apps/web run dev",

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
+import { useFabrics } from "@/hooks/useFabrics";
 import { useProducts } from "@/hooks/useProducts";
 import { useReviews } from "@/hooks/useReviews";
 import { whatsappHref } from "@/data/site";
@@ -8,6 +9,8 @@ import { useWhatsApp } from "@/hooks/useWhatsApp";
 import { useHeroAlt } from "@/hooks/useHeroAlt";
 import { useStoryAlt } from "@/hooks/useStoryAlt";
 import { useWhatsAppPrefill } from "@/hooks/useWhatsAppPrefill";
+import { IconFacebook, IconInstagram } from "@/components/Icons";
+import { useFacebook } from "@/hooks/useFacebook";
 import { useInstagram } from "@/hooks/useInstagram";
 import { useFitting } from "@/hooks/useFitting";
 import { usePrecision } from "@/hooks/usePrecision";
@@ -77,9 +80,11 @@ const reasons = [
 ];
 
 export function HomePage() {
-  const { openQuickView } = useOutletContext<StoreOutletContext>();
+  const { openQuickView, homeHero, homeStory } =
+    useOutletContext<StoreOutletContext>();
   const catalog = useProducts();
   const published = useCategories();
+  const fabrics = useFabrics();
   const bespoke = published.find((collection) => collection.slug === "bespoke-designs");
   const bestSellers = catalog.filter((product) => product.isBestseller);
   const newArrivals = catalog.filter((product) => product.isNew);
@@ -119,6 +124,7 @@ export function HomePage() {
   const heroAlt = useHeroAlt();
   const storyAlt = useStoryAlt();
   const instagram = useInstagram();
+  const facebook = useFacebook();
   const story = useStory();
   const heading = useHeading();
   const fitting = useFitting();
@@ -160,7 +166,7 @@ export function HomePage() {
         </div>
         <div className="hero-media">
           <img
-            src="/media/flowing.jpg"
+            src={homeHero}
             alt={heroAlt}
           />
         </div>
@@ -209,6 +215,38 @@ export function HomePage() {
         </div>
       </section>
 
+      {fabrics.length > 0 ? (
+        <section className="section" style={{ paddingTop: 0 }}>
+          <div className="wrap">
+            <div className="section-head">
+              <div>
+                <p className="eyebrow">{premium}</p>
+                <h2>The cloth we cut</h2>
+              </div>
+              <Link to="/bespoke" className="link-quiet">
+                {beginCta}
+              </Link>
+            </div>
+            <p className="lede fabric-lede">{handpick}</p>
+            <div className="fabric-grid">
+              {fabrics.map((fabric) => (
+                <Link key={fabric.name} to="/bespoke" className="fabric-card">
+                  {fabric.imageUrl ? (
+                    <img src={fabric.imageUrl} alt="" />
+                  ) : (
+                    <span className="fabric-card__plain" aria-hidden="true" />
+                  )}
+                  <div className="fabric-card__copy">
+                    <h3>{fabric.name}</h3>
+                    {fabric.description ? <p>{fabric.description}</p> : null}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="wrap">
           <div className="section-head">
@@ -255,7 +293,7 @@ export function HomePage() {
       <section className="section" style={{ background: "#f3f1e6" }}>
         <div className="wrap story">
           <img
-            src="/media/floral.jpg"
+            src={homeStory}
             alt={storyAlt}
           />
           <div className="story-copy">
@@ -308,14 +346,32 @@ export function HomePage() {
               <p className="eyebrow">{social}</p>
               <h2>{follow}</h2>
             </div>
-            <a
-              className="link-quiet"
-              href={instagram}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {instagramLink}
-            </a>
+            <div className="social-icons">
+              <a
+                href={instagram}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+              >
+                <IconInstagram />
+              </a>
+              <a
+                href={facebook}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Facebook"
+              >
+                <IconFacebook />
+              </a>
+              <a
+                className="link-quiet"
+                href={instagram}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {instagramLink}
+              </a>
+            </div>
           </div>
           <div className="instagram-grid">
             {products.map((product) => (

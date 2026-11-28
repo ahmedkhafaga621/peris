@@ -42,7 +42,13 @@ async function restore() {
       method: "POST",
       credentials: "include",
     });
-    if (!response.ok) {
+    const data = response.ok
+      ? ((await response.json().catch(() => null)) as {
+          accessToken?: string;
+          user?: AccountUser | null;
+        } | null)
+      : null;
+    if (!data?.accessToken || !data.user) {
       useSession.getState().markReady();
       const local = useCart.getState().lines;
       if (local.length > 0) await pushCart(local);
@@ -51,10 +57,6 @@ async function restore() {
       enableWishlistSync();
       return;
     }
-    const data = (await response.json()) as {
-      accessToken: string;
-      user: AccountUser;
-    };
     useSession.getState().setSession(data.user, data.accessToken);
     await mergeLocalCart(useCart.getState().lines, data.accessToken);
     await pullWishlist(data.accessToken);

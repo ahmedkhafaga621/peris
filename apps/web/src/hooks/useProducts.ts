@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { type Product } from "@/data/catalog";
+import { products as houseProducts, type Product } from "@/data/catalog";
 
 async function fetchProducts(): Promise<Product[]> {
   const response = await fetch("/api/v1/products");
@@ -23,5 +23,7 @@ export function useProductsQuery() {
 
 export function useProducts() {
   const query = useProductsQuery();
-  return query.data ?? [];
+  if (query.data) return query.data;
+  if (query.isError) return houseProducts;
+  return [];
 }

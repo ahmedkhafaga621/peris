@@ -67,7 +67,13 @@ type DeskOrder = {
   trackingNumber: string | null;
   trackingUrl: string | null;
   carrier: string | null;
-  items: { name: string; quantity: number }[];
+  items: {
+    name: string;
+    color: string;
+    size: string;
+    lengthLabel: string | null;
+    quantity: number;
+  }[];
 };
 
 export function AdminLoginPage() {
@@ -419,11 +425,13 @@ export function AdminDeskPage() {
                     timeStyle: "short",
                   })}
                 </p>
-                <p>
-                  {order.items
-                    .map((item) => `${item.name} × ${item.quantity}`)
-                    .join(", ")}
-                </p>
+                {order.items.map((item, index) => (
+                  <p key={`${item.name}-${item.color}-${item.size}-${index}`}>
+                    {item.name}, {item.color}, {item.size}
+                    {item.lengthLabel ? `, ${item.lengthLabel}` : ""} ×{" "}
+                    {item.quantity}
+                  </p>
+                ))}
               </td>
               <td>
                 <p>{order.customerName}</p>
@@ -840,7 +848,10 @@ export function AdminProductsPage() {
       </header>
       {note ? <p className="notice">{note}</p> : null}
       <section className="admin-create">
-        <h2>Add a piece</h2>
+        <details>
+        <summary>
+          <h2>Add a piece</h2>
+        </summary>
         <p className="lede">
           Choose one or more colors, then upload as many photographs as you need.
           Tag several photos with the same color — shoppers can scroll between
@@ -1188,6 +1199,7 @@ export function AdminProductsPage() {
             Save piece
           </button>
         </form>
+        </details>
       </section>
       <table className="admin-table">
         <thead>
@@ -1212,8 +1224,61 @@ export function AdminProductsPage() {
             };
             return (
               <tr key={product.id}>
-                <td>
-                  <strong>{product.name}</strong>
+                <td colSpan={3}>
+                  <details className="piece-details">
+                  <summary className="piece-row-head">
+                    <strong>{product.name}</strong>
+                    <span>{formatAed(product.priceFils)}</span>
+                    <span className="piece-row-status">
+                      {product.isPublished ? "In the shop" : "Hidden"}
+                    <button
+                      type="button"
+                      className="btn btn-line"
+                      aria-label={`Remove ${product.name}`}
+                      disabled={saving === `${product.id}:delete`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (
+                          !window.confirm(
+                            `Remove ${product.name} from the catalog? Orders already placed keep their own record.`,
+                          )
+                        ) {
+                          return;
+                        }
+                        setSaving(`${product.id}:delete`);
+                        setNote("");
+                        void staffFetch<{ removed: { id: string; name: string } }>(
+                          `/api/v1/admin/products/${encodeURIComponent(product.id)}`,
+                          { method: "DELETE" },
+                        )
+                          .then((body) => {
+                            setProducts((current) =>
+                              current.filter((item) => item.id !== body.removed.id),
+                            );
+                            setDrafts((current) => {
+                              const next = { ...current };
+                              delete next[body.removed.id];
+                              return next;
+                            });
+                            setNote(`${body.removed.name} was removed.`);
+                          })
+                          .catch((error: unknown) =>
+                            setNote(
+                              error instanceof Error
+                                ? error.message
+                                : "The piece was not removed.",
+                            ),
+                          )
+                          .finally(() => setSaving(""));
+                      }}
+                    >
+                      Remove piece
+                    </button>
+                    </span>
+                  </summary>
+                  <div className="piece-details__body">
+                  <div>
                   <div className="admin-create-grid" style={{ marginTop: 12 }}>
                     {(product.images ?? []).map((image) => (
                       <div key={image.id} className="field">
@@ -1759,8 +1824,8 @@ export function AdminProductsPage() {
                   >
                     Save fabric
                   </button>
-                </td>
-                <td>
+                  </div>
+                  <div>
                   <label className="field">
                     <span>Whole dirhams</span>
                     <input
@@ -1774,8 +1839,8 @@ export function AdminProductsPage() {
                       }
                     />
                   </label>
-                </td>
-                <td>
+                  </div>
+                  <div>
                   <label className="choice-label">
                     <input
                       type="checkbox"
@@ -2060,6 +2125,9 @@ export function AdminProductsPage() {
                       {otherHouseCollection(product.collectionSlug)?.name}
                     </button>
                   ) : null}
+                  </div>
+                  </div>
+                  </details>
                 </td>
               </tr>
             );

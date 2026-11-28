@@ -326,6 +326,7 @@ model Fabric {
   id           String           @id @default(cuid())
   name         String           @unique
   description  String?
+  imageUrl     String?
   sortOrder    Int              @default(0)
   isActive     Boolean          @default(true)
   isCommission Boolean          @default(false)

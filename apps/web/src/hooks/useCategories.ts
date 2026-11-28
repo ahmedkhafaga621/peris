@@ -21,7 +21,12 @@ async function fetchCategories(): Promise<HouseCollection[]> {
   const response = await fetch("/api/v1/categories");
   if (!response.ok) throw new Error("collections unavailable");
   const body = (await response.json()) as {
-    categories: { slug: string; name: string; description: string }[];
+    categories: {
+      slug: string;
+      name: string;
+      description: string;
+      imageUrl?: string | null;
+    }[];
   };
   return body.categories.map((category) => {
     const visual = collectionVisuals.get(category.slug);
@@ -29,7 +34,7 @@ async function fetchCategories(): Promise<HouseCollection[]> {
       slug: category.slug,
       name: category.name,
       description: category.description,
-      image: visual?.image,
+      image: category.imageUrl || visual?.image,
       position: visual?.position,
     };
   });
@@ -47,5 +52,15 @@ export function useCategoriesQuery() {
 
 export function useCategories() {
   const query = useCategoriesQuery();
-  return query.data ?? [];
+  if (query.data) return query.data;
+  if (query.isError) {
+    return collections.map((collection) => ({
+      slug: collection.slug,
+      name: collection.name,
+      description: collection.description,
+      image: collection.image || undefined,
+      position: collection.position,
+    }));
+  }
+  return [];
 }

@@ -39,6 +39,34 @@ const roleNames: Record<string, string> = {
   customer_support: "Customer Support",
 };
 
+export const policies = [
+  [
+    "payment",
+    "Payment information",
+    "PERIS (Lamasat Jawhareya L.L.C) currently accepts secure electronic payments via Visa, Mastercard, Apple Pay, and Google Pay through our authorized payment gateway, as well as Cash on Delivery (COD) within the UAE. Tabby installment services will be integrated upon final merchant approval. For your security, all card transactions are encrypted and processed directly by our payment provider; PERIS does not collect or store your credit card details.",
+  ],
+  [
+    "terms",
+    "Terms and conditions",
+    "Welcome to ljperis.com. This website is operated by Lamasat Jawhareya Ladies Tailoring L.L.C (PERIS), officially registered and located at Shop M01, Abu Hail Center, Dubai. By visiting our site and purchasing something from us, you engage in our \"Service\" and agree to be bound by the following terms and conditions:\n\n1. General Conditions: We reserve the right to refuse service to anyone for any reason at any time. Prices for our products are subject to change without prior notice.\n\n2. Products & Services: We have made every effort to display as accurately as possible the colors and images of our abayas and garments. Custom-tailored pieces (Custom-made) are crafted specifically to customer measurements and are subject to our in-store alteration policies.\n\n3. Accuracy of Billing Information: We reserve the right to refuse any order you place with us. You agree to provide current, complete, and accurate purchase and account information for all purchases made at our store.\n\n4. Governing Law: These Terms of Service and any separate agreements whereby we provide you services shall be governed by and construed in accordance with the laws of the United Arab Emirates.",
+  ],
+  [
+    "privacy",
+    "Privacy policy",
+    "At PERIS (Lamasat Jawhareya L.L.C), we respect your privacy and are committed to protecting your personal data. We collect essential customer information solely for the purposes of order fulfillment, payment processing, delivery, and direct communication. Your data is kept strictly confidential, processed securely, and is never sold or shared with unauthorized third parties. We adhere to standard industry practices and UAE data protection guidelines to ensure your shopping experience is safe and secure.",
+  ],
+  [
+    "returns",
+    "Returns and exchange policy",
+    "At PERIS (Lamasat Jawhareya L.L.C), we are committed to your satisfaction while maintaining fair business practices. Please read our Return and Exchange Policy carefully:\n\n- Returns (Refunds): You may return standard eligible items within 24 hours of receiving your order. After 24 hours from the delivery time, we strictly do not accept any returns or issue refunds.\n- Exchanges: You may exchange standard eligible items within 5 days of receiving your order, subject to stock availability.\n- Conditions for Return/Exchange:\n  - Items must be in their original, unused, unwashed, and undamaged condition.\n  - All original tags, labels, and packaging must be fully intact and attached.\n  - A valid proof of purchase (receipt or order number) must be presented.\n- Non-Returnable & Non-Exchangeable Items: Custom-made, altered, or specially tailored pieces cannot be returned or exchanged unless there is a proven manufacturing defect.\n- Shipping Fees: Original shipping costs are non-refundable. The customer is responsible for any return or exchange shipping fees unless the item received was defective or incorrect.",
+  ],
+  [
+    "shipping",
+    "Shipping policy",
+    "PERIS (Lamasat Jawhareya L.L.C) offers reliable delivery services across the United Arab Emirates. All orders are carefully prepared and safely dispatched directly from our boutique at Abu Hail Center, Dubai. To ensure the most accurate service for your specific location, our team will contact you directly via WhatsApp or email to confirm the exact shipping fees and estimated delivery time after your order is placed.",
+  ],
+] as const;
+
 async function main() {
   for (const key of permissions) {
     await prisma.permission.upsert({ where: { key }, update: {}, create: { key } });
@@ -117,16 +145,16 @@ async function main() {
   });
 
   const commissionFabrics = [
-    ["Crepe", 1],
-    ["Nida", 2],
-    ["Silk blend", 3],
-    ["Linen blend", 4],
+    ["Crepe", 1, "Light and fluid, with a soft fall.", "/media/fabric-crepe.jpg"],
+    ["Nida", 2, "Firm and smooth, holding a clean line.", "/media/fabric-nida.jpg"],
+    ["Silk blend", 3, "A quiet sheen for evening.", "/media/fabric-silk.jpg"],
+    ["Linen blend", 4, "Dry and breathable for the day.", "/media/fabric-linen.jpg"],
   ] as const;
-  for (const [name, sortOrder] of commissionFabrics) {
+  for (const [name, sortOrder, description, imageUrl] of commissionFabrics) {
     await prisma.fabric.upsert({
       where: { name },
       update: {},
-      create: { name, sortOrder, isCommission: true },
+      create: { name, sortOrder, description, imageUrl, isCommission: true },
     });
   }
 
@@ -275,18 +303,11 @@ async function main() {
     }
   }
 
-  const policies = [
-    ["shipping", "Shipping policy", "Draft only. PERIS will publish delivery zones, fees, and timing from the boutique in Abu Hail once the owner approves them. Nothing on this page is a promise of a shipping rate or a delivery date."],
-    ["returns", "Returns and exchange policy", "Draft only. The return and exchange terms have not been approved by the business owner. Please speak with the boutique before assuming a piece can be returned or exchanged."],
-    ["privacy", "Privacy policy", "Draft only. PERIS will describe what customer details are collected, how long they are kept, and who can see them. This text is not a final privacy notice."],
-    ["terms", "Terms and conditions", "Draft only. The conditions of sale for the PERIS website are waiting for approval from Lamasat Jawhareya. They are not in force."],
-    ["payment", "Payment information", "Draft only. The live site is planned to accept Visa, Mastercard, Apple Pay, Google Pay, and cash on delivery in the UAE, with Tabby only after a merchant account is approved. Card details will be handled by the payment provider, not stored by PERIS. This page is not a final payment policy."],
-  ] as const;
   for (const [slug, title, body] of policies) {
     await prisma.cmsPage.upsert({
       where: { slug },
-      update: {},
-      create: { slug, title, body, status: "PENDING_APPROVAL" },
+      update: { title, body, status: "PUBLISHED" },
+      create: { slug, title, body, status: "PUBLISHED" },
     });
   }
 
@@ -340,8 +361,8 @@ async function main() {
 
   await prisma.storeSetting.upsert({
     where: { key: "maps" },
-    update: {},
-    create: { key: "maps", value: { line: "https://share.google/yXXt6E0JO91xU9lmA" } },
+    update: { value: { line: "https://maps.app.goo.gl/YdjuY6Nqnad2rpD36" } },
+    create: { key: "maps", value: { line: "https://maps.app.goo.gl/YdjuY6Nqnad2rpD36" } },
   });
 
   await prisma.storeSetting.upsert({
@@ -584,8 +605,8 @@ async function main() {
 
   await prisma.storeSetting.upsert({
     where: { key: "policyeyebrow" },
-    update: {},
-    create: { key: "policyeyebrow", value: { line: "Draft" } },
+    update: { value: { line: "The house" } },
+    create: { key: "policyeyebrow", value: { line: "The house" } },
   });
 
   await prisma.storeSetting.upsert({
@@ -1145,11 +1166,14 @@ async function main() {
   console.log(`Seeded catalog and staff account ${adminEmail}`);
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+const invokedDirectly = /seed\.[cm]?[jt]s$/.test(process.argv[1] ?? "");
+if (invokedDirectly) {
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

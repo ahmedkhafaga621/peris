@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ImageUploadField } from "@/components/ImageUploadField";
 import { useSeo } from "@/lib/seo";
 import { AdminChrome } from "@/pages/AdminPage";
 import { staffFetch, useStaffSession } from "@/store/useStaffSession";
@@ -6,6 +7,8 @@ import { staffFetch, useStaffSession } from "@/store/useStaffSession";
 type DeskFabric = {
   id: string;
   name: string;
+  description: string;
+  imageUrl: string;
   isActive: boolean;
 };
 
@@ -45,7 +48,7 @@ export function AdminFabricsPage() {
         <p className="eyebrow">Catalog</p>
         <h1>Fabrics</h1>
         <p className="lede" style={{ marginTop: 16 }}>
-          A hidden fabric leaves the bespoke fabric step. The fabric line on each piece stays as it is.
+          Each photograph is the homepage cloth tile. A hidden fabric leaves the bespoke fabric step. The fabric line on each piece stays as it is.
         </p>
       </header>
       {note ? <p className="notice">{note}</p> : null}
@@ -98,6 +101,39 @@ export function AdminFabricsPage() {
               <tr key={fabric.id}>
                 <td>
                   <strong>{fabric.name}</strong>
+                  {fabric.description ? <p>{fabric.description}</p> : null}
+                  <ImageUploadField
+                    label="Homepage tile"
+                    kind="product"
+                    value={fabric.imageUrl}
+                    onChange={(imageUrl) => {
+                      setSaving(fabric.id);
+                      setNote("");
+                      void staffFetch<{ fabric: DeskFabric }>(
+                        `/api/v1/admin/fabrics/${encodeURIComponent(fabric.id)}/image`,
+                        {
+                          method: "POST",
+                          body: JSON.stringify({ imageUrl }),
+                        },
+                      )
+                        .then((body) => {
+                          setFabrics((current) =>
+                            current.map((item) =>
+                              item.id === body.fabric.id ? body.fabric : item,
+                            ),
+                          );
+                          setNote(`${body.fabric.name} photograph saved.`);
+                        })
+                        .catch((error: unknown) =>
+                          setNote(
+                            error instanceof Error
+                              ? error.message
+                              : "The photograph was not saved.",
+                          ),
+                        )
+                        .finally(() => setSaving(""));
+                    }}
+                  />
                 </td>
                 <td>
                   <p>{fabric.isActive ? "Shown" : "Hidden"}</p>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useMaintenance } from "@/hooks/useMaintenance";
 import { useNotices } from "@/hooks/useNotices";
 import { MaintenancePage } from "@/pages/HousePages";
@@ -15,21 +15,43 @@ type StorefrontSettings = {
   email: string;
   themePrimary: string;
   themeIvory: string;
+  homeHero: string;
+  homeStory: string;
 };
 
 const defaultStorefrontSettings: StorefrontSettings = {
   name: "PERIS",
   logo: "/brand/peris-burgundy.png",
-  email: "hello@peris.ae",
+  email: "info@ljperis.com",
   themePrimary: "#751629",
   themeIvory: "#f8f7ee",
+  homeHero: "/media/flowing.jpg",
+  homeStory: "/media/floral.jpg",
 };
 
 export function StoreLayout() {
+  const location = useLocation();
   const [quickView, setQuickView] = useState<Product | null>(null);
   const [settings, setSettings] = useState(defaultStorefrontSettings);
   const notices = useNotices();
   const closed = useMaintenance();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    function pinTop(event: FocusEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest(".mobile-nav, .whatsapp-stack")) return;
+      const toTop = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      toTop();
+      requestAnimationFrame(toTop);
+    }
+    document.addEventListener("focusin", pinTop);
+    return () => document.removeEventListener("focusin", pinTop);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -39,13 +61,15 @@ export function StoreLayout() {
         return response.json() as Promise<{ settings: StorefrontSettings }>;
       })
       .then((body) => {
-        if (active) setSettings(body.settings);
+        if (active) {
+          setSettings({ ...defaultStorefrontSettings, ...body.settings });
+        }
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -72,10 +96,16 @@ export function StoreLayout() {
         {closed ? (
           <MaintenancePage />
         ) : (
-          <Outlet context={{ openQuickView: setQuickView }} />
+          <Outlet
+            context={{
+              openQuickView: setQuickView,
+              homeHero: settings.homeHero,
+              homeStory: settings.homeStory,
+            }}
+          />
         )}
       </main>
-      <Footer contactEmail={settings.email} />
+      <Footer />
       <WhatsAppButton />
       <QuickView product={quickView} onClose={() => setQuickView(null)} />
     </>
@@ -84,4 +114,6 @@ export function StoreLayout() {
 
 export type StoreOutletContext = {
   openQuickView: (product: Product) => void;
+  homeHero: string;
+  homeStory: string;
 };

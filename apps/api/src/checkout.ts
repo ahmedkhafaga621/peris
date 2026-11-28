@@ -13,6 +13,7 @@ import { sendOrderConfirmed } from "./mail/index.js";
 import {
   listPaymentMethods,
   releaseZiinaPayment,
+  CARD_MINIMUM_FILS,
   ziinaConfigured,
   ziinaProvider,
 } from "./payments/index.js";
@@ -86,6 +87,12 @@ export async function placeCheckout(
   const claims = readAccess(req);
   const cart = await findActiveCart(req, res);
   const priced = await totalsFor(input.city, lines, method, cart?.id);
+  if (method === "ziina" && priced.totalFils < CARD_MINIMUM_FILS) {
+    throw new HttpError(
+      400,
+      "Card payments start at 2 AED. Choose cash on delivery, or add another piece.",
+    );
+  }
   const origin = process.env.APP_ORIGIN ?? "http://localhost:5173";
 
   try {

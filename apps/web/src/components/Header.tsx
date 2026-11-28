@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useCartCount } from "@/store/useCart";
 import { useSession } from "@/store/useSession";
@@ -7,7 +8,7 @@ import { useSearchHouse } from "@/hooks/useSearchHouse";
 import { useSearchIcon } from "@/hooks/useSearchIcon";
 import { useSearchPieces } from "@/hooks/useSearchPieces";
 import { useSearchSubmit } from "@/hooks/useSearchSubmit";
-import { IconAccount, IconBag, IconHeart, IconSearch } from "./Icons";
+import { IconAccount, IconBag, IconHeart, IconMenu, IconSearch } from "./Icons";
 
 const links = [
   { to: "/", label: "Home", end: true },
@@ -60,11 +61,12 @@ export function Header({
         <button
           type="button"
           className="icon-btn menu-btn"
+          aria-label="Menu"
           aria-expanded={menuOpen}
           aria-controls="mobile-nav"
           onClick={() => setMenuOpen(true)}
         >
-          Menu
+          <IconMenu />
         </button>
         <NavLink to="/" className="logo-link" aria-label={`${storeName} home`}>
           <img src={logo} alt={storeName} />
@@ -133,27 +135,26 @@ export function Header({
           </form>
         </div>
       ) : null}
-      {menuOpen ? (
-        <div className="mobile-nav" id="mobile-nav">
-          <header>
-            <img src={logo} alt="" style={{ height: 24 }} />
-            <button
-              type="button"
-              className="link-quiet"
-              onClick={() => setMenuOpen(false)}
-            >
-              Close
-            </button>
-          </header>
-          <nav aria-label="Mobile">
-            {links.map((link) => (
-              <NavLink key={link.to} to={link.to} end={link.end}>
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      ) : null}
+      {menuOpen
+        ? createPortal(
+            <div className="mobile-nav" id="mobile-nav">
+              <header>
+                <p>PÉRIS</p>
+                <button type="button" onClick={() => setMenuOpen(false)}>
+                  Close
+                </button>
+              </header>
+              <nav aria-label="Mobile">
+                {links.map((link) => (
+                  <NavLink key={link.to} to={link.to} end={link.end}>
+                    {link.label}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>,
+            document.body,
+          )
+        : null}
     </header>
   );
 }
