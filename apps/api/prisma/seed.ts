@@ -1,7 +1,20 @@
+import { createRequire } from "node:module";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const require = createRequire(import.meta.url);
+
+function createPrisma(): PrismaClient {
+  if (process.env.DB_HOST) {
+    const generated = require("../src/generated/mysql") as {
+      PrismaClient: new () => PrismaClient;
+    };
+    return new generated.PrismaClient();
+  }
+  return new PrismaClient();
+}
+
+const prisma = createPrisma();
 
 const permissions = [
   "dashboard.read",

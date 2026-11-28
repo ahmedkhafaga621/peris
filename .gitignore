@@ -10,4 +10,6 @@ coverage
 apps/web/dist
 apps/api/data
 apps/api/storage
+apps/api/src/generated
+apps/api/prisma/schema.mysql.prisma
 admin-login.txt

@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { loadEnv } from "./loadEnv.js";
 
 const require = createRequire(import.meta.url);
@@ -68,6 +68,30 @@ function runNode(script: string, args: string[]) {
   });
 }
 
+function managedMysqlUrl() {
+  const host = process.env.DB_HOST;
+  const port = process.env.DB_PORT;
+  const name = process.env.DB_NAME;
+  const user = process.env.DB_USER;
+  const password = process.env.DB_PASSWORD;
+  if (!host || !port || !name || !user || password == null) return null;
+  return `mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${name}`;
+}
+
+function writeMysqlSchema() {
+  const source = readFileSync(path.join(root, "prisma", "schema.prisma"), "utf8");
+  const mysql = source
+    .replace(
+      /generator client \{[\s\S]*?\}/,
+      'generator client {\n  provider = "prisma-client-js"\n  output   = "../src/generated/mysql"\n}',
+    )
+    .replace(
+      /datasource db \{[\s\S]*?\}/,
+      'datasource db {\n  provider = "mysql"\n  url      = env("DATABASE_URL")\n}',
+    );
+  writeFileSync(path.join(root, "prisma", "schema.mysql.prisma"), mysql);
+}
+
 const runningAsRoot =
   typeof process.getuid === "function" && process.getuid() === 0;
 
@@ -125,6 +149,44 @@ async function startEmbedded(target: DbTarget) {
   process.env.DATABASE_URL = `postgresql://${user}:${password}@127.0.0.1:${target.port}/${target.database}?schema=public`;
 }
 
+const mysqlUrl = managedMysqlUrl();
+
+if (mysqlUrl) {
+  console.log("Using the hosting MySQL database.");
+  process.env.DATABASE_URL = mysqlUrl;
+  try {
+    writeMysqlSchema();
+    const prismaCli = packageFile("prisma", "build/index.js");
+    runNode(prismaCli, ["generate", "--schema", "prisma/schema.mysql.prisma"]);
+    runNode(prismaCli, [
+      "db",
+      "push",
+      "--schema",
+      "prisma/schema.mysql.prisma",
+      "--skip-generate",
+      "--accept-data-loss",
+    ]);
+    const generated = (await import(
+      pathToFileURL(path.join(root, "src", "generated", "mysql", "index.js")).href
+    )) as { PrismaClient: new () => { category: { count(): Promise<number> }; $disconnect(): Promise<void> } };
+    const probe = new generated.PrismaClient();
+    try {
+      const categories = await probe.category.count();
+      if (categories === 0) {
+        console.log("Database has no categories. Seeding the catalog.");
+        runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/seed.ts"]);
+      }
+    } finally {
+      await probe.$disconnect();
+    }
+    delete process.env.PERIS_DATABASE_ERROR;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The database did not start.";
+    process.env.PERIS_DATABASE_ERROR = message.slice(0, 300);
+    console.error("PERIS database setup failed. The API is still listening.", message);
+  }
+  await import("./index.js");
+} else {
 const configuredUrl = process.env.DATABASE_URL;
 const configured = connectionTarget(configuredUrl);
 const reachable = configured ? await portOpen(configured.host, configured.port) : false;
@@ -184,4 +246,5 @@ try {
   const message = error instanceof Error ? error.message : "The database did not start.";
   process.env.PERIS_DATABASE_ERROR = message.slice(0, 300);
   console.error("PERIS database setup failed. The API is still listening.", message);
+}
 }
