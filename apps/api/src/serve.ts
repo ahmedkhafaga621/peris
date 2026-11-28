@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnv } from "./loadEnv.js";
@@ -70,9 +71,33 @@ function runNode(script: string, args: string[]) {
 const runningAsRoot =
   typeof process.getuid === "function" && process.getuid() === 0;
 
+function postgresDataDir() {
+  const preferred = path.join(root, "data", "pg");
+  try {
+    mkdirSync(preferred, { recursive: true });
+    return preferred;
+  } catch {
+    const fallback = path.join(os.tmpdir(), "peris-pg");
+    mkdirSync(fallback, { recursive: true });
+    console.error("The app folder is not writable. The database will use temporary storage.");
+    return fallback;
+  }
+}
+
+function ensureMessagesLocale() {
+  try {
+    execFileSync("localedef", ["-c", "-i", "en_US", "-f", "UTF-8", "en_US.UTF-8"], {
+      stdio: "ignore",
+    });
+  } catch {
+    // The host already has this locale, or it has no localedef command.
+  }
+}
+
 async function startEmbedded(target: DbTarget) {
+  ensureMessagesLocale();
   const { default: EmbeddedPostgres } = await import("embedded-postgres");
-  const databaseDir = path.join(root, "data", "pg");
+  const databaseDir = postgresDataDir();
   const postgres = new EmbeddedPostgres({
     databaseDir,
     user: target.user,
@@ -102,13 +127,7 @@ async function startEmbedded(target: DbTarget) {
 
 const configuredUrl = process.env.DATABASE_URL;
 const configured = connectionTarget(configuredUrl);
-let reachable = configured ? await portOpen(configured.host, configured.port) : false;
-if (configured && !configured.local && !reachable) {
-  for (let attempt = 0; attempt < 10 && !reachable; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    reachable = await portOpen(configured.host, configured.port);
-  }
-}
+const reachable = configured ? await portOpen(configured.host, configured.port) : false;
 
 const embedded: DbTarget = configured?.local
   ? { ...configured, host: "127.0.0.1" }
@@ -120,16 +139,22 @@ const embedded: DbTarget = configured?.local
       database: "peris",
       local: true,
     };
-const useEmbedded = !reachable && !(configured && !configured.local);
+const useEmbedded = !reachable;
 if (useEmbedded) {
+  if (configured && !configured.local) {
+    console.error("DATABASE_URL did not answer. Starting the bundled database instead.");
+  }
   const user = encodeURIComponent(embedded.user);
   const password = encodeURIComponent(embedded.password);
   process.env.DATABASE_URL = `postgresql://${user}:${password}@127.0.0.1:${embedded.port}/${embedded.database}?schema=public`;
 }
 
-if (configured && !configured.local && !reachable) {
+try {
+  runNode(packageFile("prisma", "build/index.js"), ["generate"]);
+} catch (error) {
   console.error(
-    "DATABASE_URL points at a Postgres server that did not answer. The API will stay up, and shop data will fail until that database is reachable.",
+    "Prisma generate failed.",
+    error instanceof Error ? error.message : error,
   );
 }
 
@@ -137,28 +162,26 @@ await import("./index.js");
 
 try {
   if (useEmbedded) {
-    console.log("No reachable Postgres was configured. Starting the bundled database.");
+    console.log("Starting the bundled database.");
     await startEmbedded(embedded);
   }
 
-  if (useEmbedded || reachable) {
-    runNode(packageFile("prisma", "build/index.js"), ["migrate", "deploy"]);
+  runNode(packageFile("prisma", "build/index.js"), ["migrate", "deploy"]);
 
-    const { PrismaClient } = await import("@prisma/client");
-    const probe = new PrismaClient();
-    try {
-      const categories = await probe.category.count();
-      if (categories === 0) {
-        console.log("Database has no categories. Seeding the catalog.");
-        runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/seed.ts"]);
-      }
-    } finally {
-      await probe.$disconnect();
+  const { PrismaClient } = await import("@prisma/client");
+  const probe = new PrismaClient();
+  try {
+    const categories = await probe.category.count();
+    if (categories === 0) {
+      console.log("Database has no categories. Seeding the catalog.");
+      runNode(packageFile("tsx", "dist/cli.mjs"), ["prisma/seed.ts"]);
     }
+  } finally {
+    await probe.$disconnect();
   }
+  delete process.env.PERIS_DATABASE_ERROR;
 } catch (error) {
-  console.error(
-    "PERIS database setup failed. The API is still listening.",
-    error instanceof Error ? error.message : error,
-  );
+  const message = error instanceof Error ? error.message : "The database did not start.";
+  process.env.PERIS_DATABASE_ERROR = message.slice(0, 300);
+  console.error("PERIS database setup failed. The API is still listening.", message);
 }

@@ -481,8 +481,19 @@ export function createApp() {
   app.use(express.json({ limit: "8mb" }));
   app.use("/api/v1/files", express.static(uploadsStaticRoot()));
 
-  app.get("/api/v1/health", (_req, res) => {
-    res.json({ ok: true });
+  app.get("/api/v1/health", async (_req, res) => {
+    const bootError = process.env.PERIS_DATABASE_ERROR;
+    if (bootError) {
+      res.json({ ok: true, database: "down", detail: bootError });
+      return;
+    }
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ ok: true, database: "up" });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The database did not answer.";
+      res.json({ ok: true, database: "down", detail: detail.slice(0, 300) });
+    }
   });
 
   app.get("/api/v1/products", async (_req, res, next) => {
