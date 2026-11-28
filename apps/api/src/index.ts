@@ -6,8 +6,9 @@ const { createApp } = await import("./app.js");
 const { releaseExpiredReservations } = await import("./payments/index.js");
 
 const port = Number(process.env.PORT ?? 4000);
-createApp().listen(port, () => {
-  console.log(`PERIS API listening on http://localhost:${port}`);
+const host = process.env.HOST ?? "0.0.0.0";
+createApp().listen(port, host, () => {
+  console.log(`PERIS API listening on http://${host}:${port}`);
 });
 
 const passMs = 60_000;
